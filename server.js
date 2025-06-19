@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { Twilio } from "twilio";
+import twilio from "twilio";
 
 dotenv.config();
 const app = express();
