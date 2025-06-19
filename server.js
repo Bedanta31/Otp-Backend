@@ -10,46 +10,49 @@ const port = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-
+// Setup Twilio client
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const verifySid = process.env.TWILIO_VERIFY_SID;
 
-app.get("/", (req, res) => {
-  res.send("World Finder OTP backend is running 🔥");
-});
+// Temporary store for OTPs (not for production)
+const otpStore = {};
 
+// 🔥 Send OTP manually
 app.post("/send-otp", async (req, res) => {
   const { phone } = req.body;
 
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[phone] = otp;
+
   try {
-    await client.verify.v2
-      .services(verifySid)
-      .verifications.create({ to: phone, channel: "sms" });
+    // Send custom SMS
+    await client.messages.create({
+      body: `🔐 Your World Finder Game OTP is: ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER, // must be a Twilio number
+      to: phone
+    });
 
     res.json({ success: true });
   } catch (error) {
-    console.error("OTP Send Error:", error);
+    console.error("SMS Send Error:", error);
     res.json({ success: false, message: error.message });
   }
 });
 
-app.post("/verify-otp", async (req, res) => {
+// ✅ Verify OTP
+app.post("/verify-otp", (req, res) => {
   const { phone, code } = req.body;
 
-  try {
-    const check = await client.verify.v2
-      .services(verifySid)
-      .verificationChecks.create({ to: phone, code });
-
-    if (check.status === "approved") {
-      res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "Invalid OTP" });
-    }
-  } catch (error) {
-    console.error("OTP Verify Error:", error);
-    res.json({ success: false, message: error.message });
+  if (otpStore[phone] && otpStore[phone] === code) {
+    delete otpStore[phone]; // clear after use
+    res.json({ success: true });
+  } else {
+    res.json({ success: false, message: "Invalid OTP" });
   }
+});
+
+app.get("/", (req, res) => {
+  res.send("🔥 World Finder Custom OTP Backend Running!");
 });
 
 app.listen(port, () => {
