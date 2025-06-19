@@ -1,48 +1,53 @@
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import twilio from 'twilio';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { Twilio } from "twilio";
 
+dotenv.config();
 const app = express();
-const port = process.env.PORT || 3000;
-
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
-
-const client = twilio(accountSid, authToken);
-const otpStore = new Map();
+const port = process.env.PORT || 10000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-app.post('/send-otp', async (req, res) => {
+const client = new Twilio(process.env.AC563c913d7ecb177ac5d3ee040d81ddc8, process.env.535829adeb5be7b634a644c2db557f26);
+const verifySid = process.env.VAc34fa8ca92e3e8f75989b3af24f76b55;
+
+app.get("/", (req, res) => {
+  res.send("World Finder OTP backend is running 🔥");
+});
+
+app.post("/send-otp", async (req, res) => {
   const { phone } = req.body;
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
-    await client.messages.create({
-      body: `🔐 Your World Finder Game OTP is: ${otp}`,
-      from: twilioNumber,
-      to: phone,
-    });
+    await client.verify.v2
+      .services(verifySid)
+      .verifications.create({ to: phone, channel: "sms" });
 
-    otpStore.set(phone, otp);
-    res.send({ success: true, message: 'OTP sent!' });
-  } catch (err) {
-    res.status(500).send({ success: false, error: err.message });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("OTP Send Error:", error);
+    res.json({ success: false, message: error.message });
   }
 });
 
-app.post('/verify-otp', (req, res) => {
+app.post("/verify-otp", async (req, res) => {
   const { phone, code } = req.body;
-  const validOtp = otpStore.get(phone);
 
-  if (code === validOtp) {
-    otpStore.delete(phone);
-    res.send({ success: true, message: 'OTP verified!' });
-  } else {
-    res.status(400).send({ success: false, message: 'Invalid OTP' });
+  try {
+    const check = await client.verify.v2
+      .services(verifySid)
+      .verificationChecks.create({ to: phone, code });
+
+    if (check.status === "approved") {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, message: "Invalid OTP" });
+    }
+  } catch (error) {
+    console.error("OTP Verify Error:", error);
+    res.json({ success: false, message: error.message });
   }
 });
 
