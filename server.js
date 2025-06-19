@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 
-const client = new Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const verifySid = process.env.TWILIO_VERIFY_SID;
 
 app.get("/", (req, res) => {
