@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+app.use(cors());
 import dotenv from "dotenv";
 import { Twilio } from "twilio";
 
